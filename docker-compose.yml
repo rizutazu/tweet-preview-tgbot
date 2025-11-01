@@ -1,0 +1,13 @@
+services:
+  tweet-preview-tgbot:
+    build: .
+    volumes:
+      - .:/usr/src/tweet-preview-tgbot
+    environment:
+      - ALLOWED_IDS
+      - TOKEN
+      - DEBUG_TGBOT
+    logging:
+      driver: "json-file"
+      options:
+          max-size: "3m"
