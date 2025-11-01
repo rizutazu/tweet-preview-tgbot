@@ -25,5 +25,5 @@ def filterAllowedIds(update: Update) -> bool:
         logger.info(f"user id {id} in {allowed_ids}, pass")
         return True
     
-    logger.warning(f"user id {id} not allowed")
+    logger.warning(f"user id {id} not in {allowed_ids}, not allowed ")
     return False

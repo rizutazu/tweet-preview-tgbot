@@ -18,6 +18,7 @@ Usage:
   - Inline mode: type "@this_bot tweet link" at any chat
 
 Support "twitter.com", "x.com", "fixupx.com", and more.
+Source code available at https://github.com/rizutazu/tweet-preview-tgbot.
 """.strip("\n")
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:

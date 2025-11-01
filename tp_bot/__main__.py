@@ -13,7 +13,7 @@ def main():
     token = getToken()
     if token == "":
         logger.fatal("no token provided")
-        return
+        exit(1)
     
     application = Application.builder().token(token).build()
 

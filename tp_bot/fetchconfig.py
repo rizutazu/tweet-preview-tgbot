@@ -1,10 +1,18 @@
 import os
 
 def getToken() -> str:
-    return os.getenv("TOKEN")
+    raw = os.getenv("TOKEN")
+    if not isinstance(raw, str):
+        return ""
+    return raw
 
 def getAllowedIds() -> list[int]:
-    raw = os.getenv("ALLOWED_IDS").split(",")
+    raw = os.getenv("ALLOWED_IDS")
+    if not isinstance(raw, str):
+        return []
+    else:
+        raw = raw.split(",")
+
     result = []
     
     for id in raw:
