@@ -1,5 +1,6 @@
 from urllib.parse import urlparse
 from telegram.helpers import escape_markdown
+import re
 
 supported_domain = [
     "twitter.com",
@@ -10,6 +11,9 @@ supported_domain = [
     "fixupx.com",
     "girlcockx.com",    # ?
 ]
+# ref: https://github.com/dylanpdx/BetterTwitFix/blob/main/utils.py
+# modification: catch \n
+end_tco_regex = re.compile(r"(^(.|\n)*?) +https:\/\/t.co\/.*?$")
 
 def parseTweetUrl(query: str) -> str:
 
@@ -55,7 +59,15 @@ def parseApiResultText(r: dict[str, any]) -> str:
 
     result = escape_markdown(f"{r['tweetURL']}\n", 2)
     result += f"[{escape_markdown(r['user_name'], 2)}]({escape_markdown('https://twitter.com/'+r["user_screen_name"], 2)}):\n"
-    if r['text'] != "":
-        for line in r['text'].split("\n"):
+    
+    # remove t.co links at the end of a string
+    # ref: https://github.com/dylanpdx/BetterTwitFix/blob/main/utils.py
+    text = r['text']
+    match = end_tco_regex.search(text)
+    if match != None:
+        text = match.group(1)
+    
+    if text != "":
+        for line in text.split("\n"):
             result += f">{escape_markdown(line, 2)}\n"
     return result
