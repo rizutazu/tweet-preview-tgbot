@@ -117,8 +117,8 @@ async def inlineQuery(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
             else:
                 logger.critical(f"unknown media type {media['type']}")
 
-    logger.info(f"parsed inline query {query}, media count = {len(medias)}")
     await update.inline_query.answer(results)
+    logger.info(f"parsed inline query {query}, media count = {len(medias)}")
 
 async def textInput(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 
@@ -188,7 +188,7 @@ async def textInput(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
                         media=media["url"]
                     ))
                 else:
-                    logger.critical(f"unknown media type {medias[0]['type']}")
+                    logger.critical(f"unknown media type {media['type']}")
             if len(reply_media_group) >= 2:
                 await update.message.reply_media_group(
                     media=reply_media_group,

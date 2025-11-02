@@ -30,7 +30,7 @@ export TOKEN="114514:aabbccdd"
 
 Run `make update` to update this repository, rebuild & restart the service
 
-Run `make up` to make changed `env_file` become effective
+Run `make up` to make changed `env_file` to become effective
 
 ## Credits
 

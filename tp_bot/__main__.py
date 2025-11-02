@@ -10,6 +10,7 @@ logger = logging.getLogger("main")
 
 def main():
 
+    # get token & build application
     token = getToken()
     if token == "":
         logger.fatal("no token provided")
@@ -17,6 +18,7 @@ def main():
     
     application = Application.builder().token(token).build()
 
+    # set bot command list
     try:
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
@@ -27,11 +29,13 @@ def main():
     except:
         logger.warning("set command failed")
 
+    # add handlers
     application.add_handler(CommandHandler("start", start))
     application.add_handler(CommandHandler("help", help))
     application.add_handler(InlineQueryHandler(inlineQuery))
     application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, textInput))
 
+    # start polling
     logger.info("start polling")
     application.run_polling(allowed_updates=Update.ALL_TYPES, drop_pending_updates=True)
 

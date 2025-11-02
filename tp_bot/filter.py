@@ -9,6 +9,11 @@ allowed_ids = getAllowedIds()
 
 def filterAllowedIds(update: Update) -> bool:
 
+    """
+    filter user id for message/inline query.
+    return: `True` : allowed to use
+    """
+
     if len(allowed_ids) == 0:
         logger.info("empty filter, pass")
         return True
