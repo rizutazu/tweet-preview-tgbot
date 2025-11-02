@@ -26,11 +26,21 @@ export ALLOWED_IDS="114514, 1919"
 export TOKEN="114514:aabbccdd"
 ```
 
+These are environment variables that will be used, DO NOT omit `export` keyword
+
 4. Start the service: run `make up` . Your system should have `make` & `docker` & `git` installed
 
 Run `make update` to update this repository, rebuild & restart the service
 
 Run `make up` to make changed `env_file` to become effective
+
+### Manually
+
+Python 3.12 is required, there is no guarantee on other versions.
+
+1. Install dependencies: `pip install -r requirements`
+2. Setup environment variables, please refer to guides mentioned above. E.g., bash: prepare your `env_file` , then run `source env_file` 
+3. Start the service: run `python -m tp_bot`
 
 ## Credits
 
