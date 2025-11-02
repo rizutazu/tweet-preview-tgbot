@@ -38,7 +38,7 @@ Run `make up` to make changed `env_file` to become effective
 
 Python 3.12 is required, there is no guarantee on other versions.
 
-1. Install dependencies: `pip install -r requirements`
+1. Install dependencies: `pip install -r requirements.txt`
 2. Setup environment variables, please refer to guides mentioned above. E.g., bash: prepare your `env_file` , then run `source env_file` 
 3. Start the service: run `python -m tp_bot`
 
