@@ -12,8 +12,13 @@ supported_domain = [
     "girlcockx.com",    # ?
 ]
 # ref: https://github.com/dylanpdx/BetterTwitFix/blob/main/utils.py
-# modification: catch \n, catch "https://t.co/blbla"(sole link)
-end_tco_regex = re.compile(r"^((.|\n)*?) *?https:\/\/t\.co\/.*?$")
+# to remove "https://t.co/bla" in "some-user-content https://t.co/bla", or "https://t.co/bla", if exist
+# it seems like "https://t.co/bla" cannot be user intented text content, 
+# because, if the path of the "t.co" link is not root, it will be replaced by its display link,
+    # e.g., "t.co/a" => "twitter.com/adlleong" (wow)
+# but "t.co" / "t.co/?arg=1" can be user intended however
+# assuming t.co link path contains a-z & A-Z & 0-9 only
+end_tco_regex = re.compile(r"^((.|\n)*?) *?https:\/\/t\.co\/[a-zA-Z0-9]+?$")
 
 def parseTweetUrl(query: str) -> str:
 
