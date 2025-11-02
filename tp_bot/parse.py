@@ -12,8 +12,8 @@ supported_domain = [
     "girlcockx.com",    # ?
 ]
 # ref: https://github.com/dylanpdx/BetterTwitFix/blob/main/utils.py
-# modification: catch \n
-end_tco_regex = re.compile(r"(^(.|\n)*?) +https:\/\/t.co\/.*?$")
+# modification: catch \n, catch "https://t.co/blbla"(sole link)
+end_tco_regex = re.compile(r"^((.|\n)*?) *?https:\/\/t\.co\/.*?$")
 
 def parseTweetUrl(query: str) -> str:
 
@@ -66,7 +66,8 @@ def parseApiResultText(r: dict[str, any]) -> str:
     match = end_tco_regex.search(text)
     if match != None:
         text = match.group(1)
-    
+
+    text = text.strip()
     if text != "":
         for line in text.split("\n"):
             result += f">{escape_markdown(line, 2)}\n"
