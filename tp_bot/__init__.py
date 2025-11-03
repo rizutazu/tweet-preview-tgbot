@@ -1,13 +1,14 @@
 import logging
 import os
 
+MY_LOGGERS = ["vxtwitter", "handler", "main", "filter"]
+
+l = max([len(x) for x in MY_LOGGERS])
 logging.basicConfig(
-    format="[%(levelname)s][%(asctime)s][%(name)s]: %(message)s",
+    format=f"[%(levelname)7s][%(asctime)s][%(name){l}s]: %(message)s",
     datefmt="%Y-%m-%d %H:%M:%S",
     level=logging.WARNING
 )
-
-MY_LOGGERS = ["vxtwitter", "handler", "main", "filter"]
 
 if os.getenv("DEBUG_TGBOT") != None:
     for name in MY_LOGGERS:

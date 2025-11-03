@@ -3,7 +3,7 @@ import json
 import logging
 
 API = "https://api.vxtwitter.com"
-RETRY_COUNT_MAX = 3
+RETRY_COUNT_MAX = 2
 client: httpx.AsyncClient = httpx.AsyncClient()
 logger = logging.getLogger("vxtwitter")
 
@@ -11,6 +11,7 @@ async def queryAPI(tweet_id: str) -> dict[str, any] | None:
 
     """
     get tweet info of given tweet_id, or None
+    tweet_id format: "username/status/numbers",
     result format:
     {
         "media_extended": [
@@ -34,15 +35,17 @@ async def queryAPI(tweet_id: str) -> dict[str, any] | None:
         "text": "some text",
         "tweetURL": "https://twitter.com/xxx/status/xxx",
         "user_name": "display name",
-        "user_screen_name": "screen_name"
+        "user_screen_name": "screen_name",
+
+        // if api does not return this key, assume false
+        "possibly_sensitive": False,
     }
     """
 
     q = f"{API}/{tweet_id}"
 
     retry = 0
-
-    while (retry < RETRY_COUNT_MAX):
+    while retry < RETRY_COUNT_MAX:
         try:
             # query the api
             response = await client.get(q)
@@ -51,20 +54,20 @@ async def queryAPI(tweet_id: str) -> dict[str, any] | None:
 
         # well the server failed or sth, return
         except httpx.HTTPStatusError:
-            logger.warning(f"vxtwitter api: http status code {response.status_code}")
+            logger.warning(f"http status code {response.status_code}")
             return None
         # network issue, retry
         except (httpx.NetworkError, httpx.TimeoutException):
-            logger.warning(f"vxtwitter api: network error, retry count = {retry}")
             retry += 1
+            logger.warning(f"network error, retry count = {retry}")
             continue
         # failed link will respond with a html webpage
         except json.JSONDecodeError:
-            logger.warning(f"vxtwitter api: might be bad link: {tweet_id}")
+            logger.warning(f"might be bad link: {tweet_id}")
             return None
         # what hell
         except Exception as e:
-            logger.critical(f"vxtwitter api: {type(e)}: {str(e)}")
+            logger.critical(f"unexpected exception: {type(e)}: {str(e)}")
             return None
 
         try:
@@ -81,11 +84,12 @@ async def queryAPI(tweet_id: str) -> dict[str, any] | None:
                 "tweetURL": response_content["tweetURL"],
                 "user_name": response_content["user_name"],
                 "user_screen_name": response_content["user_screen_name"],
+                "possibly_sensitive": response_content.get("possibly_sensitive", False)
             }
             return r
         except KeyError as e:
-            logger.critical(f"vxtwitter api: result does not contain expected key: {str(e)}")
+            logger.critical(f"result does not contain expected key: {str(e)}")
             return None
 
-    logger.warning("vxtwitter api: exceed retry count max")
+    logger.warning("reach retry count max")
     return None

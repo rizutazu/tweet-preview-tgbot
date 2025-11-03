@@ -4,6 +4,7 @@ from telegram import (Update, InlineQueryResultPhoto, InlineQueryResultVideo, In
                       InputTextMessageContent,
                       InputMediaPhoto, InputMediaVideo)
 from telegram.ext import ContextTypes
+from telegram.error import NetworkError
 from uuid import uuid4
 
 from .parse import parseTweetUrl, parseApiResultText
@@ -20,6 +21,8 @@ Usage:
 Support "twitter.com", "x.com", "fixupx.com", and more.
 Source code available at https://github.com/rizutazu/tweet-preview-tgbot.
 """.strip("\n")
+# max retry count when encountered network error
+RETRY_COUNT_MAX = 2
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 
@@ -61,13 +64,13 @@ async def inlineQuery(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
     # check && parse url
     tweet_id = parseTweetUrl(query)
     if tweet_id == "":
-        logger.info(f"invalid inline query '{query}'")
+        logger.info(f"invalid inline query {query}")
         return
 
     # query api for tweet info
     tweet = await queryAPI(tweet_id)
     if tweet == None:
-        logger.info(f"{tweet_id}: api returned none")
+        logger.info(f"{tweet_id}: api returned None")
         return
 
     # prepare text content, markdown v2 format
@@ -116,9 +119,22 @@ async def inlineQuery(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
                 ))
             else:
                 logger.critical(f"unknown media type {media['type']}")
-
-    await update.inline_query.answer(results)
-    logger.info(f"parsed inline query {query}, media count = {len(medias)}")
+    
+    # i hate handling network error
+    retry = 0
+    while retry < RETRY_COUNT_MAX:
+        try:
+            if len(results) > 0:
+                await update.inline_query.answer(results)
+                logger.info(f"handled inline query {query}, media count = {len(results)}")
+            else:
+                logger.warning("all media have unknown type, answer nothing")
+            return
+        except NetworkError:
+            retry += 1
+            logger.warning(f"handle inline query: network error, retry = {retry}")
+    logger.warning("reach retry count max")
+    
 
 async def textInput(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 
@@ -140,60 +156,93 @@ async def textInput(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     tweet_id = parseTweetUrl(query)
     if tweet_id == "":
         logger.info(f"invalid user input: '{query}'")
-        await update.message.reply_text("invalid input: not a twitter link")
         return
 
     # query api for tweet info
     tweet = await queryAPI(tweet_id)
     if tweet == None:
         logger.info(f"{tweet_id}: api returned none")
-        await update.message.reply_text("retrieve tweet info failed")
         return
 
     text_content = parseApiResultText(tweet)
 
     medias = tweet["media_extended"]
 
+    # there is no way to add spolier in inline query
+    is_sensitive = tweet["possibly_sensitive"]
+
+    # to merge different reply_* function call into one try block
+    reply_func: str["" | "markdown_v2" | "photo" | "video" | "media_group"] = ""
+    reply_media_group = []
+
     # pure text
     if len(medias) == 0:
-        await update.message.reply_markdown_v2(text_content, disable_web_page_preview=True)
+        reply_func = "markdown_v2"
     # with media
     else:
         # one media => [reply_photo, reply_video]
         if len(medias) == 1:
             if medias[0]["type"] == "image":
-                await update.message.reply_photo(
-                    photo=medias[0]["url"],
-                    caption=text_content,
-                    parse_mode=telegram.constants.ParseMode.MARKDOWN_V2
-                )
+                reply_func = "photo"
             elif medias[0]["type"] in ["video", "gif"]:
-                await update.message.reply_video(
-                    video=medias[0]["url"],
-                    caption=text_content,
-                    parse_mode=telegram.constants.ParseMode.MARKDOWN_V2
-                )
+                reply_func = "video"
             else:
+                # reply_func = ""
                 logger.critical(f"unknown media type {medias[0]['type']}")
         # multiple => reply_media_group, require >= 2 items, so
         else:
-            reply_media_group = []
             for media in medias:
                 if media["type"] == "image":
                     reply_media_group.append(InputMediaPhoto(
-                        media=media["url"]
+                        media=media["url"],
+                        has_spoiler=is_sensitive
                     ))
                 elif media["type"] in ["video", "gif"]:
                     reply_media_group.append(InputMediaVideo(
-                        media=media["url"]
+                        media=media["url"],
+                        has_spoiler=is_sensitive
                     ))
                 else:
                     logger.critical(f"unknown media type {media['type']}")
+            # require at least 2
             if len(reply_media_group) >= 2:
+                reply_func = "media_group"
+            # else: 
+            #     reply_func = ""
+    
+    retry = 0
+    while retry < RETRY_COUNT_MAX:
+        try:
+            if reply_func == "markdown_v2":
+                await update.message.reply_markdown_v2(text_content, disable_web_page_preview=True)
+                logger.info(f"handled user input {query}, media count = {len(medias)}")
+            elif reply_func == "photo":
+                await update.message.reply_photo(
+                    photo=medias[0]["url"],
+                    caption=text_content,
+                    parse_mode=telegram.constants.ParseMode.MARKDOWN_V2,
+                    has_spoiler=is_sensitive
+                )
+                logger.info(f"handled user input {query}, media count = {len(medias)}")
+            elif reply_func == "video":
+                await update.message.reply_video(
+                    video=medias[0]["url"],
+                    caption=text_content,
+                    parse_mode=telegram.constants.ParseMode.MARKDOWN_V2,
+                    has_spoiler=is_sensitive
+                )
+                logger.info(f"handled user input {query}, media count = {len(medias)}")
+            elif reply_func == "media_group":
                 await update.message.reply_media_group(
                     media=reply_media_group,
                     caption=text_content,
                     parse_mode=telegram.constants.ParseMode.MARKDOWN_V2
                 )
-
-    logger.info(f"parsed user input {query}, media count = {len(medias)}")
+                logger.info(f"handled user input {query}, media count = {len(reply_media_group)}")
+            else:
+                logger.critical("all media have unknown type, reply nothing")
+            return
+        except NetworkError:
+            retry += 1
+            logger.warning(f"handle user input: network error, retry = {retry}")
+    logger.warning("reach retry count max")
