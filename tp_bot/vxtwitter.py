@@ -72,14 +72,22 @@ async def queryAPI(tweet_id: str) -> dict[str, any] | None:
 
         try:
             # check whether certain key exist
+            media_extended = []
             for media in response_content["media_extended"]:
-                _ = media["url"]
-                _ = media["thumbnail_url"]
+                m = {
+                    "type": media["type"],
+                    "url": media["url"] + "?format=jpg&name=orig",  # original size
+                    "thumbnail_url": media["thumbnail_url"],
+                }
+                # image has size field
                 if media["type"] == "image":
-                    _ = media["size"]["height"]
-                    _ = media["size"]["width"]
+                    m["size"] = {
+                        "height":  media["size"]["height"],
+                        "width": media["size"]["width"]
+                    }
+                media_extended.append(m)
             r = {
-                "media_extended": response_content["media_extended"],
+                "media_extended": media_extended,
                 "text": response_content["text"],
                 "tweetURL": response_content["tweetURL"],
                 "user_name": response_content["user_name"],
