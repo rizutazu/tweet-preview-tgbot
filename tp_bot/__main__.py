@@ -3,7 +3,7 @@ from telegram import BotCommand, Update
 import logging
 import asyncio
 
-from .handler import start, help, inlineQuery, textInput
+from .handler import start, help, inlineQuery, textInput, errorHandler
 from .fetchconfig import getToken
 
 logger = logging.getLogger("main")
@@ -34,6 +34,7 @@ def main():
     application.add_handler(CommandHandler("help", help))
     application.add_handler(InlineQueryHandler(inlineQuery))
     application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, textInput))
+    application.add_error_handler(errorHandler, block=False)
 
     # start polling
     logger.info("start polling")

@@ -68,7 +68,7 @@ async def inlineQuery(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
         return
 
     # query api for tweet info
-    tweet = await queryAPI(tweet_id)
+    tweet = await queryAPI(tweet_id, use_jpg_url=True)
     if tweet == None:
         logger.info(f"{tweet_id}: api returned None")
         return
@@ -134,7 +134,6 @@ async def inlineQuery(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
             retry += 1
             logger.warning(f"handle inline query: network error, retry = {retry}")
     logger.warning("reach retry count max")
-    
 
 async def textInput(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 
@@ -246,3 +245,13 @@ async def textInput(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
             retry += 1
             logger.warning(f"handle user input: network error, retry = {retry}")
     logger.warning("reach retry count max")
+
+async def errorHandler(update: object, context: ContextTypes.DEFAULT_TYPE) -> None:
+
+    """
+    handler for exception
+    """
+
+    logger.error("Exception hanppened:", exc_info=context.error)
+    
+    
