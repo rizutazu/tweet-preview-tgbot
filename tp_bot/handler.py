@@ -252,6 +252,10 @@ async def errorHandler(update: object, context: ContextTypes.DEFAULT_TYPE) -> No
     handler for exception
     """
 
-    logger.error("Exception hanppened:", exc_info=context.error)
+    e = context.error
+    if type(e) == NetworkError:
+        logger.warning(f"telegram network error")
+    else:
+        logger.critical(f"unexpected exception happened: {type(e)}", exc_info=context.error)
     
     

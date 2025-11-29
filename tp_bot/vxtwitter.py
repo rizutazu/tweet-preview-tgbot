@@ -9,7 +9,9 @@ client: httpx.AsyncClient = httpx.AsyncClient()
 logger = logging.getLogger("vxtwitter")
 # match "https://pbs.twimg.com/media/xxx.extension"
 # 1st capturing group is "https://pbs.twimg.com/media/xxx", 2nd capturing group is ".extension"
-pbs_twimg_regex = re.compile(r"^(https:\/\/pbs\.twimg\.com\/media\/[a-zA-Z0-9]+)(\.[a-z]+)$")
+# ".extension" => webp/jpg/png
+# "xxx" may contain "_", and i don't want to consider more edge cases
+pbs_twimg_regex = re.compile(r"^(https:\/\/pbs\.twimg\.com\/media\/.+?)(\.[a-z]+)$")
 
 async def queryAPI(tweet_id: str, use_jpg_url: bool=False) -> dict[str, any] | None:
 
