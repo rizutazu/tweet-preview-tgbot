@@ -83,21 +83,22 @@ async def queryAPI(tweet_id: str, use_jpg_url: bool=False) -> dict[str, any] | N
             # check whether certain key exist
             media_extended = []
             for media in response_content["media_extended"]:
-                url = convertPbsTwimgUrl(media["url"], use_jpg_url)
-                if url == "":
-                    logger.critical(f"media url {media['url']} does not have expected format")
-                    return None
                 m = {
                     "type": media["type"],
-                    "url": url,
+                    "url": media["url"],
                     "thumbnail_url": media["thumbnail_url"],
                 }
-                # image has size field
+                # handle image
                 if media["type"] == "image":
                     m["size"] = {
                         "height":  media["size"]["height"],
                         "width": media["size"]["width"]
                     }
+                    url = convertPbsTwimgUrl(media["url"], use_jpg_url)
+                    if url == "":
+                        logger.critical(f"img url {media['url']} does not have expected format")
+                        return None
+                    m["url"] = url
                 media_extended.append(m)
             r = {
                 "media_extended": media_extended,
@@ -120,6 +121,7 @@ def convertPbsTwimgUrl(url: str, use_jpg_url: bool) -> str:
     """
     convert stuff like "https://pbs.twimg.com/media/xxx.jpg" 
     to "https://pbs.twimg.com/xxx.jpg?name=orig", to reach maximal image quality.
+    only convert image link, not .mp4
 
     parameters:
     - url: the stuff mentioned above
