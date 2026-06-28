@@ -42,6 +42,10 @@ Python 3.12 is required, there is no guarantee on other versions.
 2. Setup environment variables, please refer to guides mentioned above. E.g., bash: prepare your `env_file` , then run `source env_file` 
 3. Start the service: run `python -m tp_bot`
 
+## Known limits
+
+Currently, this bot can only send video of size less than 20MB, which is a limit of Telegram API when sending video by remote URL.
+
 ## Credits
 
 [BetterTwitFix](https://github.com/dylanpdx/BetterTwitFix): This bot is implemented by using `api.vxtwitter.com` API, thank you!
