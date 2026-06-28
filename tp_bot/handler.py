@@ -66,15 +66,14 @@ async def inlineQuery(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
     if tweet_id == "":
         logger.info(f"invalid inline query {query}")
         return
+    
+    logger.info(f"start handling inline query {query}")
 
     # query api for tweet info
     tweet = await queryAPI(tweet_id, use_jpg_url=True)
     if tweet == None:
         logger.info(f"{tweet_id}: api returned None")
         return
-
-    # prepare text content, markdown v2 format
-    text_content = parseApiResultText(tweet)
 
     medias = tweet["media_extended"]
 
@@ -85,7 +84,7 @@ async def inlineQuery(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
                 id=str(uuid4()),
                 title="Pure text",
                 input_message_content=InputTextMessageContent(
-                    message_text=text_content,
+                    message_text=parseApiResultText(tweet, 4096),
                     parse_mode=telegram.constants.ParseMode.MARKDOWN_V2,
                     disable_web_page_preview=True
                 )
@@ -103,7 +102,7 @@ async def inlineQuery(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
                     thumbnail_url=media["thumbnail_url"],
                     photo_width=media["size"]["width"],
                     photo_height=media["size"]["height"],
-                    caption=text_content,
+                    caption=parseApiResultText(tweet, 1024),
                     parse_mode=telegram.constants.ParseMode.MARKDOWN_V2
                 ))
             # video and gif are treated as same, coz twitter use mp4 to store gif...
@@ -114,7 +113,7 @@ async def inlineQuery(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
                     mime_type="video/mp4",
                     thumbnail_url=media["thumbnail_url"],
                     title=media["type"],
-                    caption=text_content,
+                    caption=parseApiResultText(tweet, 1024),
                     parse_mode=telegram.constants.ParseMode.MARKDOWN_V2
                 ))
             else:
@@ -130,9 +129,9 @@ async def inlineQuery(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
             else:
                 logger.warning("all media have unknown type, answer nothing")
             return
-        except NetworkError:
+        except NetworkError as e:
             retry += 1
-            logger.warning(f"handle inline query: network error, retry = {retry}")
+            logger.warning(f"error on handling inline query: {e}, retry = {retry}")
     logger.warning("reach retry count max")
 
 async def textInput(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -157,13 +156,13 @@ async def textInput(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         logger.info(f"invalid user input: '{query}'")
         return
 
+    logger.info(f"start handling user input {query}")
+
     # query api for tweet info
     tweet = await queryAPI(tweet_id)
     if tweet == None:
         logger.info(f"{tweet_id}: api returned none")
         return
-
-    text_content = parseApiResultText(tweet)
 
     medias = tweet["media_extended"]
 
@@ -206,27 +205,27 @@ async def textInput(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
             # require at least 2
             if len(reply_media_group) >= 2:
                 reply_func = "media_group"
-            # else: 
-            #     reply_func = ""
     
     retry = 0
     while retry < RETRY_COUNT_MAX:
         try:
             if reply_func == "markdown_v2":
-                await update.message.reply_markdown_v2(text_content, disable_web_page_preview=True)
+                # text len limit 4096
+                await update.message.reply_markdown_v2(parseApiResultText(tweet, 4096), disable_web_page_preview=True)
                 logger.info(f"handled user input {query}, media count = {len(medias)}")
             elif reply_func == "photo":
                 await update.message.reply_photo(
                     photo=medias[0]["url"],
-                    caption=text_content,
+                    caption=parseApiResultText(tweet, 1024),
                     parse_mode=telegram.constants.ParseMode.MARKDOWN_V2,
                     has_spoiler=is_sensitive
                 )
                 logger.info(f"handled user input {query}, media count = {len(medias)}")
             elif reply_func == "video":
+                # caption len limit 1024
                 await update.message.reply_video(
                     video=medias[0]["url"],
-                    caption=text_content,
+                    caption=parseApiResultText(tweet, 1024),
                     parse_mode=telegram.constants.ParseMode.MARKDOWN_V2,
                     has_spoiler=is_sensitive
                 )
@@ -234,16 +233,16 @@ async def textInput(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
             elif reply_func == "media_group":
                 await update.message.reply_media_group(
                     media=reply_media_group,
-                    caption=text_content,
+                    caption=parseApiResultText(tweet, 1024),
                     parse_mode=telegram.constants.ParseMode.MARKDOWN_V2
                 )
                 logger.info(f"handled user input {query}, media count = {len(reply_media_group)}")
             else:
                 logger.critical("all media have unknown type, reply nothing")
             return
-        except NetworkError:
+        except NetworkError as e:
             retry += 1
-            logger.warning(f"handle user input: network error, retry = {retry}")
+            logger.warning(f"error on handling user input: {e}, retry = {retry}")
     logger.warning("reach retry count max")
 
 async def errorHandler(update: object, context: ContextTypes.DEFAULT_TYPE) -> None:

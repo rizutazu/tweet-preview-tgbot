@@ -56,7 +56,7 @@ def parseTweetUrl(query: str) -> str:
 
     return ""
 
-def parseApiResultText(r: dict[str, any]) -> str:
+def parseApiResultText(r: dict[str, any], max_text_length: int) -> str:
 
     """
     convert api result text (text part of given tweet) into markdown v2 text
@@ -65,14 +65,27 @@ def parseApiResultText(r: dict[str, any]) -> str:
     result = escape_markdown(f"{r['tweetURL']}\n", 2)
     result += f"[{escape_markdown(r['user_name'], 2)}]({escape_markdown('https://twitter.com/'+r["user_screen_name"], 2)}):\n"
     
+    # well...what does it mean by 'max xx characters after entities parsing'?
+    # seems like, it works
+    current_text_length = len(result)
+    remaining_text_length = max_text_length - current_text_length
+    if remaining_text_length < 0:
+        remaining_text_length = 0
+
     # remove t.co links at the end of a string
     # ref: https://github.com/dylanpdx/BetterTwitFix/blob/main/utils.py
     text = r['text']
     match = end_tco_regex.search(text)
     if match != None:
         text = match.group(1)
-
     text = text.strip()
+
+    # follow max_text_length restriction
+    if len(text) > remaining_text_length:
+        text = text[:remaining_text_length]
+        text = text[:-3] + "..."
+        text = text[:remaining_text_length]     # why i do this?
+
     if text != "":
         for line in text.split("\n"):
             result += f">{escape_markdown(line, 2)}\n"

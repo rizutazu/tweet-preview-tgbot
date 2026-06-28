@@ -94,7 +94,17 @@ async def queryAPI(tweet_id: str, use_jpg_url: bool=False) -> dict[str, any] | N
                         "height":  media["size"]["height"],
                         "width": media["size"]["width"]
                     }
-                    url = convertPbsTwimgUrl(media["url"], use_jpg_url)
+                    
+                    # it seems like, telegram has image width/height limit of 2560px. I guess: 
+                    # if the long side exceeds 2560px, while the short side does not exceed 2560px, then it is ok,
+                    # telegram server will do auto-resizing.
+                    # However, if both sides exceeds 2560px, the telegram server will respond 
+                    # 'Wrong type of the web page content'.
+                    use_large = False
+                    if media["size"]["height"] > 2560 and media["size"]["width"] > 2560:
+                        use_large = True
+
+                    url = convertPbsTwimgUrl(media["url"], use_jpg_url, use_large)
                     if url == "":
                         logger.critical(f"img url {media['url']} does not have expected format")
                         return None
@@ -116,7 +126,7 @@ async def queryAPI(tweet_id: str, use_jpg_url: bool=False) -> dict[str, any] | N
     logger.warning("reach retry count max")
     return None
 
-def convertPbsTwimgUrl(url: str, use_jpg_url: bool) -> str:
+def convertPbsTwimgUrl(url: str, use_jpg_url: bool, use_large: bool) -> str:
 
     """
     convert stuff like "https://pbs.twimg.com/media/xxx.jpg" 
@@ -129,6 +139,7 @@ def convertPbsTwimgUrl(url: str, use_jpg_url: bool) -> str:
     If the original image is not a jpg image, "?format=jpg&name=orig" will return 404,  \
     "?format=jpg&name=large" is the only choice. \
     Ref: https://gist.github.com/Colerar/80da426728e38a907cc811ac821bf307 \
+    - use_large: use 'name=large', otherwise use 'name=orig'
     """
 
     match = pbs_twimg_regex.search(url)
@@ -138,4 +149,7 @@ def convertPbsTwimgUrl(url: str, use_jpg_url: bool) -> str:
     if use_jpg_url and match.group(2) != ".jpg":
         return match.group(1) + "?format=jpg&name=large"
     else:
-        return url + "?name=orig"
+        if use_large:
+            return url + "?name=large"
+        else:
+            return url + "?name=orig"
