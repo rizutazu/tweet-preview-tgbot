@@ -162,7 +162,14 @@ async def textInput(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     tweet = await queryAPI(tweet_id)
     if tweet == None:
         logger.info(f"{tweet_id}: api returned none")
-        return
+        for _ in range(3):
+            try:
+                await update.message.reply_markdown_v2("retrieve tweet info failed: bad link / deleted / from protected account")
+                return
+            except NetworkError:
+                pass
+            except Exception:
+                return
 
     medias = tweet["media_extended"]
 

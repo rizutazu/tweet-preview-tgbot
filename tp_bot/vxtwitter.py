@@ -70,7 +70,7 @@ async def queryAPI(tweet_id: str, use_jpg_url: bool=False) -> dict[str, any] | N
             retry += 1
             logger.warning(f"network error, retry count = {retry}")
             continue
-        # failed link will respond with a html webpage
+        # failed link & protected account will respond with a html webpage
         except json.JSONDecodeError:
             logger.warning(f"might be bad link: {tweet_id}")
             return None
@@ -79,10 +79,17 @@ async def queryAPI(tweet_id: str, use_jpg_url: bool=False) -> dict[str, any] | N
             logger.critical(f"unexpected exception: {type(e)}: {str(e)}")
             return None
 
-        try:
-            # check whether certain key exist
-            media_extended = []
-            for media in response_content["media_extended"]:
+        # check media_extended key
+        # even this tweet does not contain any picture, this key shall exist
+        if response_content.get("media_extended") == None:
+            logger.critical(f"url {tweet_id} does not have 'media_extended' key")
+            return None
+            
+        media_extended = []
+        for media in response_content["media_extended"]:
+            # check each expected key
+            # skip handling this entry if encountered any error
+            try:
                 m = {
                     "type": media["type"],
                     "url": media["url"],
@@ -106,22 +113,23 @@ async def queryAPI(tweet_id: str, use_jpg_url: bool=False) -> dict[str, any] | N
 
                     url = convertPbsTwimgUrl(media["url"], use_jpg_url, use_large)
                     if url == "":
-                        logger.critical(f"img url {media['url']} does not have expected format")
-                        return None
+                        logger.critical(f"img url {media['url']} does not have expected format, skip")
+                        continue
                     m["url"] = url
+
                 media_extended.append(m)
-            r = {
-                "media_extended": media_extended,
-                "text": response_content["text"],
-                "tweetURL": response_content["tweetURL"],
-                "user_name": response_content["user_name"],
-                "user_screen_name": response_content["user_screen_name"],
-                "possibly_sensitive": response_content.get("possibly_sensitive", False)
-            }
-            return r
-        except KeyError as e:
-            logger.critical(f"result does not contain expected key: {str(e)}")
-            return None
+            except KeyError as e:
+                logger.critical(f"media_extended entry does not contain expected key: {str(e)}, skip")
+                continue
+        r = {
+            "media_extended": media_extended,
+            "text": response_content["text"],
+            "tweetURL": response_content["tweetURL"],
+            "user_name": response_content["user_name"],
+            "user_screen_name": response_content["user_screen_name"],
+            "possibly_sensitive": response_content.get("possibly_sensitive", False)
+        }
+        return r
 
     logger.warning("reach retry count max")
     return None
