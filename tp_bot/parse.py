@@ -10,6 +10,7 @@ supported_domain = [
     "fxtwitter.com",
     "fixupx.com",
     "girlcockx.com",    # ?
+    "xfixup.com"
 ]
 # ref: https://github.com/dylanpdx/BetterTwitFix/blob/main/utils.py
 # to remove "https://t.co/bla" in "some-user-content https://t.co/bla", or "https://t.co/bla", if exist
