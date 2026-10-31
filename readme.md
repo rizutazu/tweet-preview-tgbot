@@ -5,8 +5,30 @@ A Telegram bot for tweet content preview.
 Features:
 - Send link and get the result
 - Inline mode: "@this_bot tweet_link"
-- Can parse common alternative domains like `vxtwitter.com` / `fixupx.com` ...
 - Private deploy: only selected users can use this bot
+- Can parse common alternative domains:
+```python
+supported_domain = [
+    "twitter.com",
+    "x.com",
+    "vxtwitter.com",
+    "fixvx.com",
+    "fxtwitter.com",
+    "fixupx.com",
+    "girlcockx.com",    # ?
+    "xfixup.com"
+]
+```
+
+## About tracking parameters
+
+Recently, Twitter has started [adding tracking parameters on sharing links](https://cybernews.com/privacy/twitter-tracks-copied-links/). **This bot will remove these tracking parameters. All the links are accessed without tracking parameters.**
+
+**However, Telegram will do link preview on whatever your type by default**, which may cause privacy-related concern. You may need to disable link preview functionality.
+
+## Known limits
+
+Currently, this bot can only send video of size less than 20MB, which is a limit of Telegram API when sending video by remote URL.
 
 ## Deploy guide
 
@@ -41,10 +63,6 @@ Python 3.12 is required, there is no guarantee on other versions.
 1. Install dependencies: `pip install -r requirements.txt`
 2. Setup environment variables, please refer to guides mentioned above. E.g., bash: prepare your `env_file` , then run `source env_file` 
 3. Start the service: run `python -m tp_bot`
-
-## Known limits
-
-Currently, this bot can only send video of size less than 20MB, which is a limit of Telegram API when sending video by remote URL.
 
 ## Credits
 

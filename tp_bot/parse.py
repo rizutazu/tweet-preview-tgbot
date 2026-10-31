@@ -28,7 +28,7 @@ def parseTweetUrl(query: str) -> str:
     if so, return its tweet id, or return empty string
 
     e.g. 
-    - "twitter.com/aaa/status/114514" => "aaa/status/114514"
+    - "twitter.com/aaa/status/114514?a=xxx" => "aaa/status/114514"  <- url query removed
     - "x.com/aaa/status/114514/photo/2" => "aaa/status/114514"
     """
 
@@ -40,6 +40,7 @@ def parseTweetUrl(query: str) -> str:
         r = urlparse(query)
         if r.netloc.lstrip("www.") in supported_domain:
             # remove leading and ending "/", then split
+            # r.query <- url query, which includes tracking parameters, are not processed 
             paths = r.path.removeprefix("/").removesuffix("/").split("/")
             
             # must match "username/status/number" pattern:
