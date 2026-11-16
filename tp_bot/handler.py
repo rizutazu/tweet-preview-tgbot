@@ -173,7 +173,7 @@ async def textInput(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 
     medias = tweet["media_extended"]
 
-    # there is no way to add spolier in inline query
+    # there is no way to add spoiler in inline query
     is_sensitive = tweet["possibly_sensitive"]
 
     # to merge different reply_* function call into one try block
@@ -212,7 +212,10 @@ async def textInput(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
             # require at least 2
             if len(reply_media_group) >= 2:
                 reply_func = "media_group"
-    
+
+    # handle more than one message when network failure
+    previous_reply = None
+
     retry = 0
     while retry < RETRY_COUNT_MAX:
         try:
@@ -238,12 +241,43 @@ async def textInput(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
                 )
                 logger.info(f"handled user input {query}, media count = {len(medias)}")
             elif reply_func == "media_group":
-                await update.message.reply_media_group(
-                    media=reply_media_group,
-                    caption=parseApiResultText(tweet, 1024),
-                    parse_mode=telegram.constants.ParseMode.MARKDOWN_V2
-                )
-                logger.info(f"handled user input {query}, media count = {len(reply_media_group)}")
+                len_media_group = len(reply_media_group)
+
+                # twitter supports 20 media now, but reply_media_group require 2~10 items
+                if len_media_group <= 10:
+                    await update.message.reply_media_group(
+                        media=reply_media_group,
+                        caption=parseApiResultText(tweet, 1024),
+                        parse_mode=telegram.constants.ParseMode.MARKDOWN_V2
+                    )
+                elif len_media_group == 11:
+                    # 11 media: split into 9-2 for avoiding use other methods
+                    if previous_reply is None:
+                        previous_reply = (await update.message.reply_media_group(
+                            media=reply_media_group[:9],
+                            caption=parseApiResultText(tweet, 1024),
+                            parse_mode=telegram.constants.ParseMode.MARKDOWN_V2
+                        ))[0]
+                    await previous_reply.reply_media_group(
+                        media=reply_media_group[9:],
+                        caption=parseApiResultText(tweet, 1024),
+                        parse_mode=telegram.constants.ParseMode.MARKDOWN_V2
+                    )
+                else:
+                    # >= 12 media: ok
+                    if previous_reply is None:
+                        previous_reply = (await update.message.reply_media_group(
+                            media=reply_media_group[:10],
+                            caption=parseApiResultText(tweet, 1024),
+                            parse_mode=telegram.constants.ParseMode.MARKDOWN_V2
+                        ))[0]
+                    await previous_reply.reply_media_group(
+                        media=reply_media_group[10:],
+                        caption=parseApiResultText(tweet, 1024),
+                        parse_mode=telegram.constants.ParseMode.MARKDOWN_V2
+                    )
+
+                logger.info(f"handled user input {query}, media count = {len_media_group}")
             else:
                 logger.critical("all media have unknown type, reply nothing")
             return
