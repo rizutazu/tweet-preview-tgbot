@@ -165,6 +165,7 @@ async def textInput(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         for _ in range(3):
             try:
                 await update.message.reply_markdown_v2("retrieve tweet info failed: bad link / deleted / from protected account")
+                logger.info("error message sent: bad link")
                 return
             except NetworkError:
                 pass
@@ -287,6 +288,7 @@ async def textInput(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
                 for _ in range(3):
                     try:
                         await update.message.reply_markdown_v2("retrieve tweet info failed: video too large")
+                        logger.info(f"error message sent: video too large")
                         return
                     except NetworkError:
                         pass
