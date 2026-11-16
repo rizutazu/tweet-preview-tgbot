@@ -282,6 +282,16 @@ async def textInput(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
                 logger.critical("all media have unknown type, reply nothing")
             return
         except NetworkError as e:
+            # send error message when video is too large
+            if e.message == "Failed to get http url content":
+                for _ in range(3):
+                    try:
+                        await update.message.reply_markdown_v2("retrieve tweet info failed: video too large")
+                        return
+                    except NetworkError:
+                        pass
+                    except Exception:
+                        return
             retry += 1
             logger.warning(f"error on handling user input: {e}, retry = {retry}")
     logger.warning("reach retry count max")
