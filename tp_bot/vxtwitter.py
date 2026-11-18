@@ -98,7 +98,7 @@ async def queryAPI(tweet_id: str, use_jpg_url: bool=False) -> dict[str, any] | N
                 # handle image
                 if media["type"] == "image":
                     m["size"] = {
-                        "height":  media["size"]["height"],
+                        "height": media["size"]["height"],
                         "width": media["size"]["width"]
                     }
                     

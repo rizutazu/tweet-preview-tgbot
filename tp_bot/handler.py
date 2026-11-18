@@ -215,7 +215,7 @@ async def textInput(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
                 reply_func = "media_group"
 
     # handle more than one message when network failure
-    previous_reply = None
+    previous_sent = False
 
     retry = 0
     while retry < RETRY_COUNT_MAX:
@@ -253,51 +253,45 @@ async def textInput(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
                     )
                 elif len_media_group == 11:
                     # 11 media: split into 9-2 for avoiding use other methods
-                    if previous_reply is None:
-                        previous_reply = (await update.message.reply_media_group(
+                    if not previous_sent:
+                        await update.message.reply_media_group(
                             media=reply_media_group[:9],
                             caption=parseApiResultText(tweet, 1024),
                             parse_mode=telegram.constants.ParseMode.MARKDOWN_V2
-                        ))[0]
-                    await previous_reply.reply_media_group(
+                        )
+                        logger.info("first message sent")
+                        previous_sent = True
+                    await update.message.reply_media_group(
                         media=reply_media_group[9:],
                         caption=parseApiResultText(tweet, 1024),
                         parse_mode=telegram.constants.ParseMode.MARKDOWN_V2
                     )
+                    logger.info("second message sent")
                 else:
                     # >= 12 media: ok
-                    if previous_reply is None:
-                        previous_reply = (await update.message.reply_media_group(
+                    if not previous_sent:
+                        await update.message.reply_media_group(
                             media=reply_media_group[:10],
                             caption=parseApiResultText(tweet, 1024),
                             parse_mode=telegram.constants.ParseMode.MARKDOWN_V2
-                        ))[0]
-                    await previous_reply.reply_media_group(
+                        )
+                        logger.info("first message sent")
+                        previous_sent = True
+                    await update.message.reply_media_group(
                         media=reply_media_group[10:],
                         caption=parseApiResultText(tweet, 1024),
                         parse_mode=telegram.constants.ParseMode.MARKDOWN_V2
                     )
+                    logger.info("second message sent")
 
                 logger.info(f"handled user input {query}, media count = {len_media_group}")
             else:
                 logger.critical("all media have unknown type, reply nothing")
             return
         except NetworkError as e:
-            # send error message when video is too large
-            if e.message == "Failed to get http url content":
-                for _ in range(3):
-                    try:
-                        await update.message.reply_markdown_v2("retrieve tweet info failed: video too large")
-                        logger.info(f"error message sent: video too large")
-                        return
-                    except NetworkError:
-                        pass
-                    except Exception:
-                        return
             retry += 1
             logger.warning(f"error on handling user input: {e}, retry = {retry}")
     logger.warning("reach retry count max")
-
 async def errorHandler(update: object, context: ContextTypes.DEFAULT_TYPE) -> None:
 
     """
